@@ -2,39 +2,51 @@ import cv2
 import numpy as np
 
 import autodroid.adb as adb
+from autodroid import AndroidImage
 
 
-def fetch_screen_img(scale_to_dp=False):
+def fetch_screen_img():
     png_raw = adb.cap_screen_pic()
     png_raw = np.asarray(bytearray(png_raw), dtype=np.uint8)
     img = cv2.imdecode(png_raw, cv2.IMREAD_COLOR)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-    if scale_to_dp:
-        img = cv2.resize(img, adb.get_screen_size(in_dp=True), interpolation=cv2.INTER_AREA)
-
-    return img
+    return AndroidImage(img, adb.get_dpi())
 
 
-def match(img, templ_img, match_one=True, threshold=0.6, de_dup=True):
-    img_gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    templ_gray = cv2.cvtColor(templ_img, cv2.COLOR_BGR2GRAY)
+def match(img: AndroidImage, templ_img: AndroidImage, match_one=True, threshold=0.5, de_dup=True):
+    if img.dpi == templ_img.dpi:
+        coord_scale = 1
+        img_array = img.image
+        templ_array = templ_img.image
+    elif img.dpi < templ_img.dpi:
+        coord_scale = 1
+        img_array = img.image
+        templ_array = scale_image(templ_img.image, img.dpi / templ_img.dpi)
+    else:
+        coord_scale = img.dpi / templ_img.dpi
+        img_array = scale_image(img.image, 1 / coord_scale)
+        templ_array = templ_img.image
 
-    res = cv2.matchTemplate(img_gray, templ_gray, cv2.TM_CCOEFF_NORMED)
+    def coord_restore(rect):
+        return (rect[0] * coord_scale, rect[1] * coord_scale, rect[2] * coord_scale, rect[3] * coord_scale)
+
+    res = cv2.matchTemplate(img_array, templ_array, cv2.TM_CCOEFF_NORMED)
 
     if match_one:
         max = np.max(res)
         loc = np.where(res == max)
         x = loc[1][0]
         y = loc[0][0]
-        return (x, y, x + templ_gray.shape[1], y + templ_gray.shape[0])
+        result = (x, y, x + templ_array.shape[1], y + templ_array.shape[0])
+        return coord_restore(result)
 
     loc = np.where(res > threshold)
     loc = sorted(zip(loc[0], loc[1]), key=lambda pos: -res[pos[0]][pos[1]])
 
     matches = list()
     for y, x in loc:
-        matches.append((x, y, x + templ_gray.shape[1], y + templ_gray.shape[0]))
+        matches.append((x, y, x + templ_array.shape[1], y + templ_array.shape[0]))
 
     if de_dup:
         no_dup = list()
@@ -48,7 +60,7 @@ def match(img, templ_img, match_one=True, threshold=0.6, de_dup=True):
     else:
         no_dup = matches
 
-    return no_dup
+    return list(map(lambda item: coord_restore(item), no_dup))
 
 
 def scale_image(origin_image, factor):

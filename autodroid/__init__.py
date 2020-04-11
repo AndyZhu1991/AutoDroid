@@ -1,3 +1,4 @@
-import autodroid.adb
+from autodroid.adb import init_adb
+from .image import AndroidImage
 
-autodroid.adb.init_adb()
+init_adb()
