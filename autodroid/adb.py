@@ -28,6 +28,8 @@ def cap_screen_pic():
 
 
 def click_point(x, y):
+    x = int(x)
+    y = int(y)
     os.system(f'{adb_command} shell input tap {x} {y}')
 
 

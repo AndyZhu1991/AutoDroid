@@ -1,21 +1,23 @@
+from autodroid.image import AndroidImage
 import cv2
 import numpy as np
-
-import autodroid.adb as adb
-from autodroid import AndroidImage
+from autodroid.adb import cap_screen_pic, get_dpi
+from autodroid.rect import Rect
 
 
 def fetch_screen_img():
-    png_raw = adb.cap_screen_pic()
+    png_raw = cap_screen_pic()
     png_raw = np.asarray(bytearray(png_raw), dtype=np.uint8)
     img = cv2.imdecode(png_raw, cv2.IMREAD_COLOR)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+ 
+    return AndroidImage(img, get_dpi())
 
-    return AndroidImage(img, adb.get_dpi())
 
-
-def match(img: AndroidImage, templ_img: AndroidImage, match_one=True, threshold=0.5, de_dup=True):
-    if img.dpi == templ_img.dpi:
+def match(img, templ_img, match_one=True, threshold=0.5, de_dup=True, ignore_dpi=False):
+    if img is np.ndarray:
+        img = AndroidImage(img)
+    if ignore_dpi or img.dpi == templ_img.dpi or img.dpi == None or templ_img.dpi == None:
         coord_scale = 1
         img_array = img.image
         templ_array = templ_img.image
@@ -29,7 +31,7 @@ def match(img: AndroidImage, templ_img: AndroidImage, match_one=True, threshold=
         templ_array = templ_img.image
 
     def coord_restore(rect):
-        return (rect[0] * coord_scale, rect[1] * coord_scale, rect[2] * coord_scale, rect[3] * coord_scale)
+        return Rect(rect[0] * coord_scale, rect[1] * coord_scale, rect[2] * coord_scale, rect[3] * coord_scale)
 
     res = cv2.matchTemplate(img_array, templ_array, cv2.TM_CCOEFF_NORMED)
 
@@ -38,6 +40,8 @@ def match(img: AndroidImage, templ_img: AndroidImage, match_one=True, threshold=
         loc = np.where(res == max)
         x = loc[1][0]
         y = loc[0][0]
+        if res[y][x] < threshold:
+            return None
         result = (x, y, x + templ_array.shape[1], y + templ_array.shape[0])
         return coord_restore(result)
 
@@ -76,3 +80,11 @@ def scale_image(origin_image, factor):
     else:
         inter = cv2.INTER_AREA
     return cv2.resize(origin_image, (0, 0), fx=factor, fy=factor, interpolation=inter)
+
+
+def get_image_region(origin_image, rect: Rect):
+    if origin_image is AndroidImage:
+        image = origin_image.image
+        return AndroidImage(image[rect.top:rect.bottom, rect.left:rect.right], origin_image.dpi)
+    else:
+        return origin_image[rect.top:rect.bottom, rect.left:rect.right]
