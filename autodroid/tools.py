@@ -1,39 +1,45 @@
-from autodroid.image import AndroidImage
+from typing import Union
 import cv2
 import numpy as np
-from autodroid.adb import cap_screen_pic, get_dpi
+from autodroid.adb import cap_screen_pic
+from autodroid.device import Device
 from autodroid.rect import Rect
+from numpy import ndarray as Image
+from autodroid.size import Size
 
 
-def fetch_screen_img():
-    png_raw = cap_screen_pic()
+def fetch_screen_img(device: Device = None) -> Image:
+    png_raw = cap_screen_pic(device)
     png_raw = np.asarray(bytearray(png_raw), dtype=np.uint8)
     img = cv2.imdecode(png_raw, cv2.IMREAD_COLOR)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
  
-    return AndroidImage(img, get_dpi())
+    return img
 
 
-def match(img, templ_img, match_one=True, threshold=0.5, de_dup=True, ignore_dpi=False):
-    if img is np.ndarray:
-        img = AndroidImage(img)
-    if ignore_dpi or img.dpi == templ_img.dpi or img.dpi == None or templ_img.dpi == None:
+def match(img: Image, templ_img: Image, search_rect: Rect = None, match_one=True,\
+    threshold=0.5, de_dup=True, img_dpi=None, templ_dpi=None) -> Union[Rect, list[Rect]]:
+
+    if search_rect != None:
+        img = get_image_region(img, search_rect)
+
+    if img_dpi == None or templ_dpi == None:
         coord_scale = 1
-        img_array = img.image
-        templ_array = templ_img.image
-    elif img.dpi < templ_img.dpi:
+    elif img_dpi < templ_dpi:
         coord_scale = 1
-        img_array = img.image
-        templ_array = scale_image(templ_img.image, img.dpi / templ_img.dpi)
+        templ_img = scale_image(templ_img, img_dpi / templ_dpi)
     else:
-        coord_scale = img.dpi / templ_img.dpi
-        img_array = scale_image(img.image, 1 / coord_scale)
-        templ_array = templ_img.image
+        coord_scale = img_dpi / templ_dpi
+        img = scale_image(img, 1 / coord_scale)
 
     def coord_restore(rect):
-        return Rect(rect[0] * coord_scale, rect[1] * coord_scale, rect[2] * coord_scale, rect[3] * coord_scale)
+        result = Rect(rect[0] * coord_scale, rect[1] * coord_scale,\
+                      rect[2] * coord_scale, rect[3] * coord_scale)
+        if search_rect != None:
+            result.move(search_rect.left, search_rect.top)
+        return result
 
-    res = cv2.matchTemplate(img_array, templ_array, cv2.TM_CCOEFF_NORMED)
+    res = cv2.matchTemplate(img, templ_img, cv2.TM_CCOEFF_NORMED)
 
     if match_one:
         max = np.max(res)
@@ -42,7 +48,7 @@ def match(img, templ_img, match_one=True, threshold=0.5, de_dup=True, ignore_dpi
         y = loc[0][0]
         if res[y][x] < threshold:
             return None
-        result = (x, y, x + templ_array.shape[1], y + templ_array.shape[0])
+        result = (x, y, x + templ_img.shape[1], y + templ_img.shape[0])
         return coord_restore(result)
 
     loc = np.where(res > threshold)
@@ -50,41 +56,60 @@ def match(img, templ_img, match_one=True, threshold=0.5, de_dup=True, ignore_dpi
 
     matches = list()
     for y, x in loc:
-        matches.append((x, y, x + templ_array.shape[1], y + templ_array.shape[0]))
+        matches.append((x, y, x + templ_img.shape[1], y + templ_img.shape[0]))
 
-    if de_dup:
-        no_dup = list()
-        for item in matches:
-            if len(no_dup) == 0:
-                no_dup.append(item)
-            else:
-                distance = item[0] - no_dup[-1][0]
-                if distance < -5 or distance > 5:
-                    no_dup.append(item)
-    else:
-        no_dup = matches
+    # if de_dup:
+    #     no_dup = list()
+    #     for item in matches:
+    #         if len(no_dup) == 0:
+    #             no_dup.append(item)
+    #         else:
+    #             distance = item[0] - no_dup[-1][0]
+    #             if distance < -5 or distance > 5:
+    #                 no_dup.append(item)
+    # else:
+    #     no_dup = matches
 
-    return list(map(lambda item: coord_restore(item), no_dup))
+    matches = list(map(lambda item: coord_restore(item), matches))
+    de_duped = list()
+    for item in matches:
+        # has
+        if next((x for x in de_duped if item.is_intersect(x)), None) == None:
+            de_duped.append(item)
+    return de_duped
 
 
-def scale_image(origin_image, factor):
+def scale_image(origin_image: Image, target_size: Size) -> Image:
     """
     To shrink an image, it will generally look best with cv::INTER_AREA interpolation, 
     whereas to enlarge an image, it will generally look best with cv::INTER_CUBIC (slow) or cv::INTER_LINEAR (faster but still looks OK).
     """
-    if factor == 1:
+    origin_size = get_image_size(origin_image)
+
+    if origin_size == target_size:
         return origin_image
 
-    if factor > 1:
+    factor_x = target_size.width / origin_size.width
+    factor_y = target_size.height / origin_size.height
+
+    if factor_x > 1 and factor_y > 1:
         inter = cv2.INTER_CUBIC
     else:
         inter = cv2.INTER_AREA
-    return cv2.resize(origin_image, (0, 0), fx=factor, fy=factor, interpolation=inter)
+
+    return cv2.resize(origin_image, (0, 0), fx=factor_x, fy=factor_y, interpolation=inter)
 
 
-def get_image_region(origin_image, rect: Rect):
-    if origin_image is AndroidImage:
-        image = origin_image.image
-        return AndroidImage(image[rect.top:rect.bottom, rect.left:rect.right], origin_image.dpi)
-    else:
-        return origin_image[rect.top:rect.bottom, rect.left:rect.right]
+def get_image_region(origin_image: Image, rect: Rect) -> Image:
+    return origin_image[rect.top:rect.bottom, rect.left:rect.right]
+
+
+def read_image(image_path: str) -> Image:
+    image = cv2.imread(image_path)
+    # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    return image
+
+
+def get_image_size(img: Image) -> Size:
+    shape = img.shape
+    return Size(shape[1], shape[0])

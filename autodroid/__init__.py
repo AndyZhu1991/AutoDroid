@@ -1,6 +1,7 @@
-from autodroid.adb import init_adb, cap_screen_pic, click_point, start_activity, get_density, get_dpi, get_screen_size
-from autodroid.image import *
+from autodroid.adb import *
 from autodroid.tools import *
 from autodroid.rect import *
+from autodroid.point import Point
+from autodroid.size import Size
 
 init_adb()

@@ -1,13 +1,19 @@
 from subprocess import check_output
 import os
 import shutil
+from typing import Union
+import re
+from functional import seq
+
+from autodroid.device import Device
+from autodroid.size import Size
 
 adb_command = None
 
-physical_size_leading = "Physical size: "
-override_size_leading = "Override size: "
-physical_density_leading = "Physical density: "
-override_density_leading = "Physical density: "
+_physical_size_leading = "Physical size: "
+_override_size_leading = "Override size: "
+_physical_density_leading = "Physical density: "
+_override_density_leading = "Physical density: "
 
 
 def init_adb():
@@ -23,41 +29,64 @@ def init_adb():
         raise Exception("No adb command found!")
 
 
-def cap_screen_pic():
-    return check_output(f'{adb_command} exec-out screencap -p')
+def list_devices() -> list[Device]:
+    raw_output = check_output(make_command("devices"))
+    raw_output = str(raw_output, encoding='utf-8')
+    lines = raw_output.splitlines()
+    return seq(lines)\
+        .map(lambda line: line.split("\t"))\
+        .filter(lambda it: len(it) == 2)\
+        .map(lambda it: it[0])\
+        .map(lambda id: Device(id))\
+        .to_list()
 
 
-def click_point(x, y):
+def make_command(real_cmd: str, device: Device = None) -> str:
+    if device == None:
+        return f"{adb_command} {real_cmd}"
+    else:
+        return f"{adb_command} -s {device.id} {real_cmd}"
+
+
+def run_command(real_cmd: str, device: Device = None):
+    os.system(make_command(real_cmd, device))
+
+
+def cap_screen_pic(device: Device = None):
+    return check_output(make_command("exec-out screencap -p", device))
+
+
+def click_point(x: Union[int, float], y: Union[int, float], device: Device = None):
     x = int(x)
     y = int(y)
-    os.system(f'{adb_command} shell input tap {x} {y}')
+    run_command(f"shell input tap {x} {y}", device)
 
 
-def start_activity(activity):
+def start_activity(activity: str, device: Device = None):
     """
     activity: package name + activity name, like: com.tencent.mm/com.tencent.mm.ui.LauncherUI
     """
-    os.system(f'{adb_command} shell am start -n {activity}')
+    run_command(f"shell am start -n {activity}", device)
 
 
-def get_screen_size(in_dp=False):
-    raw_output = check_output(f'{adb_command} shell wm size')
+def get_screen_size(in_dp=False, device: Device = None) -> Size:
+    raw_output = check_output(make_command("shell wm size", device))
     raw_output = str(raw_output, encoding='utf-8')
     output_lines = raw_output.splitlines()
     output_lines = sorted(output_lines)
     sizes = output_lines[0].split(":")[1].strip().split("x")
-    sizes = (int(sizes[0]), int(sizes[1]))
+    sizes = Size(int(sizes[0]), int(sizes[1]))
     if not in_dp:
         return sizes
     else:
         density = get_density()
         width_dp = 480 / density * 360
         height_dp = sizes[1] / sizes[0] * width_dp
-        return (round(width_dp), round(height_dp))
+        return Size(round(width_dp), round(height_dp))
 
 
-def get_density():
-    raw_output = check_output(f'{adb_command} shell wm density')
+def get_density(device: Device = None) -> int:
+    raw_output = check_output(make_command("shell wm density", device))
     raw_output = str(raw_output, encoding='utf-8')
     output_lines = raw_output.splitlines()
     output_lines = sorted(output_lines)
@@ -65,7 +94,7 @@ def get_density():
     return int(density)
 
 
-def get_dpi():
-    size_in_px = get_screen_size(in_dp=False)
-    size_in_dp = get_screen_size(in_dp=True)
+def get_dpi(device: Device = None) -> float:
+    size_in_px = get_screen_size(in_dp=False, device=device)
+    size_in_dp = get_screen_size(in_dp=True, device=device)
     return size_in_px[0] / size_in_dp[0]
