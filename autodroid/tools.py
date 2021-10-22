@@ -8,17 +8,24 @@ from numpy import ndarray as Image
 from autodroid.size import Size
 
 
-def fetch_screen_img(device: Device = None) -> Image:
-    png_raw = cap_screen_pic(device)
-    png_raw = np.asarray(bytearray(png_raw), dtype=np.uint8)
-    img = cv2.imdecode(png_raw, cv2.IMREAD_COLOR)
-    # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+def fetch_screen_img(device: Device = None, use_png=True) -> Image:
+    raw = cap_screen_pic(device, use_png=use_png)
+    img = None
+    if use_png:
+        png_raw = np.asarray(bytearray(raw), dtype=np.uint8)
+        img = cv2.imdecode(png_raw, cv2.IMREAD_COLOR)
+    else:
+        width = int.from_bytes(raw[0: 4], byteorder='little')
+        height = int.from_bytes(raw[4: 8], byteorder='little')
+        image = np.frombuffer(raw[16:], dtype='uint8')
+        image = np.reshape(image, (height, width, 4))
+        img = image[:,:,[2, 1, 0]]
  
     return img
 
 
 def match(img: Image, templ_img: Image, search_rect: Rect = None, match_one=True,\
-    threshold=0.5, de_dup=True, img_dpi=None, templ_dpi=None) -> Union[Rect, list[Rect]]:
+    threshold=0.666, de_dup=True, img_dpi=None, templ_dpi=None) -> Union[Rect, list[Rect]]:
 
     if search_rect != None:
         img = get_image_region(img, search_rect)

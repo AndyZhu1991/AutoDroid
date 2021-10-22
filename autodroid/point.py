@@ -6,4 +6,4 @@ class Point():
 
 
     def __str__(self) -> str:
-        return "Device" + str(self.__dict__)
+        return "Point" + str(self.__dict__)

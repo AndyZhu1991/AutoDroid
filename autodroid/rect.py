@@ -54,7 +54,20 @@ class Rect:
     def copy(self) -> 'Rect':
         return Rect(self.left, self.top, self.right, self.bottom)
 
+    def left_top(self) -> Point:
+        return Point(self.left, self.top)
+
+    def integerlize(self):
+        self.left = round(self.left)
+        self.top = round(self.top)
+        self.right = round(self.right)
+        self.bottom = round(self.bottom)
+
     @staticmethod
     def from_center_size(center: Point, size: Size) -> 'Rect':
         return Rect(center.x - size.width / 2, center.y - size.height / 2, \
                     center.x + size.width / 2, center.y + size.height / 2)
+
+    @staticmethod
+    def from_start_size(start: Point, size: Size) -> 'Rect':
+        return Rect(start.x, start.y, start.x + size.width, start.y + size.height)

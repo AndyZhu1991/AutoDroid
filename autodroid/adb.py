@@ -52,14 +52,24 @@ def run_command(real_cmd: str, device: Device = None):
     os.system(make_command(real_cmd, device))
 
 
-def cap_screen_pic(device: Device = None):
-    return check_output(make_command("exec-out screencap -p", device))
+def cap_screen_pic(device: Device = None, use_png=True):
+    png_flag = "-p" if(use_png) else ""
+    return check_output(make_command(f"exec-out screencap {png_flag}", device))
 
 
 def click_point(x: Union[int, float], y: Union[int, float], device: Device = None):
     x = int(x)
     y = int(y)
     run_command(f"shell input tap {x} {y}", device)
+
+
+def swipe(x1, y1, x2, y2, duration=None, device=None):
+    x1 = int(x1)
+    y1 = int(y1)
+    x2 = int(x2)
+    y2 = int(y2)
+    duration = "" if(duration == None) else int(duration*1000)
+    run_command(f"shell input swipe {x1} {y1} {x2} {y2} {duration}", device)
 
 
 def start_activity(activity: str, device: Device = None):
