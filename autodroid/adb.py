@@ -52,9 +52,9 @@ def run_command(real_cmd: str, device: Device = None):
     run(make_command(real_cmd, device))
 
 
-def cap_screen_pic(device: Device = None, use_png=True):
+def cap_screen_pic(device: Device = None, use_png=True, timeout=None):
     png_flag = ["-p"] if(use_png) else []
-    return check_output(make_command(["exec-out", "screencap"] + png_flag, device))
+    return check_output(make_command(["exec-out", "screencap"] + png_flag, device), timeout=timeout)
 
 
 def click_point(x: Union[int, float], y: Union[int, float], device: Device = None):

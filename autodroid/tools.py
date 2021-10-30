@@ -8,8 +8,8 @@ from numpy import ndarray as Image
 from autodroid.size import Size
 
 
-def fetch_screen_img(device: Device = None, use_png=True) -> Image:
-    raw = cap_screen_pic(device, use_png=use_png)
+def fetch_screen_img(device: Device = None, use_png=True, timeout=None) -> Image:
+    raw = cap_screen_pic(device, use_png=use_png, timeout=timeout)
     img = None
     if use_png:
         png_raw = np.asarray(bytearray(raw), dtype=np.uint8)
