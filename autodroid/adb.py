@@ -1,4 +1,4 @@
-from subprocess import check_output
+from subprocess import check_output, run
 import os
 import shutil
 from typing import Union
@@ -30,7 +30,7 @@ def init_adb():
 
 
 def list_devices() -> list[Device]:
-    raw_output = check_output(make_command("devices"))
+    raw_output = check_output(make_command(["devices"]))
     raw_output = str(raw_output, encoding='utf-8')
     lines = raw_output.splitlines()
     return seq(lines)\
@@ -41,26 +41,26 @@ def list_devices() -> list[Device]:
         .to_list()
 
 
-def make_command(real_cmd: str, device: Device = None) -> str:
+def make_command(real_cmd: list[str], device: Device = None) -> str:
     if device == None:
-        return f"{adb_command} {real_cmd}"
+        return [adb_command] + real_cmd
     else:
-        return f"{adb_command} -s {device.id} {real_cmd}"
+        return [adb_command] + ["-s", device.id] + real_cmd
 
 
 def run_command(real_cmd: str, device: Device = None):
-    os.system(make_command(real_cmd, device))
+    run(make_command(real_cmd, device))
 
 
 def cap_screen_pic(device: Device = None, use_png=True):
-    png_flag = "-p" if(use_png) else ""
-    return check_output(make_command(f"exec-out screencap {png_flag}", device))
+    png_flag = ["-p"] if(use_png) else []
+    return check_output(make_command(["exec-out", "screencap"] + png_flag, device))
 
 
 def click_point(x: Union[int, float], y: Union[int, float], device: Device = None):
     x = int(x)
     y = int(y)
-    run_command(f"shell input tap {x} {y}", device)
+    run_command(["shell", "input", "tap", str(x), str(y)], device)
 
 
 def swipe(x1, y1, x2, y2, duration=None, device=None):
@@ -68,19 +68,19 @@ def swipe(x1, y1, x2, y2, duration=None, device=None):
     y1 = int(y1)
     x2 = int(x2)
     y2 = int(y2)
-    duration = "" if(duration == None) else int(duration*1000)
-    run_command(f"shell input swipe {x1} {y1} {x2} {y2} {duration}", device)
+    duration = [] if(duration == None) else [str(int(duration*1000))]
+    run_command(["shell", "input", "swipe", str(x1), str(y1), str(x2), str(y2)] + duration, device)
 
 
 def start_activity(activity: str, device: Device = None):
     """
     activity: package name + activity name, like: com.tencent.mm/com.tencent.mm.ui.LauncherUI
     """
-    run_command(f"shell am start -n {activity}", device)
+    run_command(["shell", "am", "start", "-n", activity], device)
 
 
 def get_screen_size(in_dp=False, device: Device = None) -> Size:
-    raw_output = check_output(make_command("shell wm size", device))
+    raw_output = check_output(make_command(["shell", "wm", "size"], device))
     raw_output = str(raw_output, encoding='utf-8')
     output_lines = raw_output.splitlines()
     output_lines = sorted(output_lines)
@@ -96,7 +96,7 @@ def get_screen_size(in_dp=False, device: Device = None) -> Size:
 
 
 def get_density(device: Device = None) -> int:
-    raw_output = check_output(make_command("shell wm density", device))
+    raw_output = check_output(make_command(["shell", "wm", "density"], device))
     raw_output = str(raw_output, encoding='utf-8')
     output_lines = raw_output.splitlines()
     output_lines = sorted(output_lines)
