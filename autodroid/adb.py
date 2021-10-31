@@ -16,6 +16,11 @@ _physical_density_leading = "Physical density: "
 _override_density_leading = "Physical density: "
 
 
+KEYCODE_HOME = 3
+KEYCODE_BACK = 4
+KEYCODE_POWER = 26
+
+
 def init_adb():
     global adb_command
     if shutil.which("adb") is not None:
@@ -79,6 +84,14 @@ def start_activity(activity: str, device: Device = None):
     run_command(["shell", "am", "start", "-n", activity], device)
 
 
+def launch_app(package_name: str, device: Device = None):
+    """
+    This command simulates the app icon click,
+    so the intent implicit intent LAUNCHER is delivered to the specific receiver declared in app manifest
+    """
+    run_command(["shell", "monky", "-p", package_name, "-c", "android.intent.category.LAUNCHER", "1"], device)
+
+
 def get_screen_size(in_dp=False, device: Device = None) -> Size:
     raw_output = check_output(make_command(["shell", "wm", "size"], device))
     raw_output = str(raw_output, encoding='utf-8')
@@ -108,3 +121,7 @@ def get_dpi(device: Device = None) -> float:
     size_in_px = get_screen_size(in_dp=False, device=device)
     size_in_dp = get_screen_size(in_dp=True, device=device)
     return size_in_px[0] / size_in_dp[0]
+
+
+def input_key(key_code: int, device: Device = None):
+    run_command(["shell", "input", "keyevent", str(key_code)], device)
