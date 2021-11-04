@@ -20,6 +20,10 @@ class Rect:
     def height(self):
         return self.bottom - self.top
 
+    @property
+    def size(self):
+        return Size(self.width(), self.height())
+
     def center_x(self):
         return (self.left + self.right) / 2
 
@@ -56,6 +60,12 @@ class Rect:
 
     def left_top(self) -> Point:
         return Point(self.left, self.top)
+
+    def scale(self, factor):
+        self.left *= factor
+        self.right *= factor
+        self.top *= factor
+        self.bottom *= factor
 
     def integerlize(self):
         self.left = round(self.left)
