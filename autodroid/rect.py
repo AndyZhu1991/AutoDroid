@@ -24,6 +24,10 @@ class Rect:
     def size(self):
         return Size(self.width(), self.height())
 
+    @property
+    def area(self):
+        return self.width() * self.height()
+
     def center_x(self):
         return (self.left + self.right) / 2
 
