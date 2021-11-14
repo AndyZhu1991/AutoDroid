@@ -12,7 +12,7 @@ class Rect:
         self.bottom = bottom
 
     def __str__(self) -> str:
-        return "Device" + str(self.__dict__)
+        return "Rect" + str(self.__dict__)
 
     def width(self):
         return self.right - self.left
@@ -44,7 +44,7 @@ class Rect:
         self.bottom += delta_y
 
     def contains(self, x, y) -> bool:
-        return x >= self.left and x <= self.right and y >= self.top and y <= self.bottom
+        return x >= self.left and x < self.right and y >= self.top and y < self.bottom
 
     def contains_rect(self, other: 'Rect') -> bool:
         return self.left <= other.left and self.top <= other.top \
@@ -76,6 +76,20 @@ class Rect:
         self.top = round(self.top)
         self.right = round(self.right)
         self.bottom = round(self.bottom)
+
+    def limit_in(self, other: 'Rect'):
+        """
+        Limit self in other Rect. The other Rect MUST larger than self, both width and height
+        """
+        assert self.width() <= other.width() and self.height() <= other.height()
+        if self.left < other.left:
+            self.move(other.left - self.left, 0)
+        elif self.right > other.right:
+            self.move(other.right - self.right, 0)
+        if self.top < other.top:
+            self.move(0, other.top - self.top)
+        elif self.bottom > other.bottom:
+            self.move(0, other.bottom - self.bottom)
 
     @staticmethod
     def from_center_size(center: Point, size: Size) -> 'Rect':
