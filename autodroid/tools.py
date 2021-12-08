@@ -17,7 +17,7 @@ def fetch_screen_img(device: Device = None, use_png=True, timeout=None) -> Image
     else:
         width = int.from_bytes(raw[0: 4], byteorder='little')
         height = int.from_bytes(raw[4: 8], byteorder='little')
-        image = np.frombuffer(raw[16:], dtype='uint8')
+        image = np.frombuffer(raw[-width*height*4:], dtype='uint8')
         image = np.reshape(image, (height, width, 4))
         img = image[:,:,[2, 1, 0]]
  
