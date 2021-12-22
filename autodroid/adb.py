@@ -41,8 +41,7 @@ def list_devices() -> list[Device]:
     return seq(lines)\
         .map(lambda line: line.split("\t"))\
         .filter(lambda it: len(it) == 2)\
-        .map(lambda it: it[0])\
-        .map(lambda id: Device(id))\
+        .map(lambda it: Device(it[0], it[1]))\
         .to_list()
 
 
