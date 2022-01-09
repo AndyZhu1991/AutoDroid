@@ -128,4 +128,4 @@ def input_key(key_code: int, device: Device = None):
 
 def get_device_model(device: Device = None) -> str:
     raw_output = check_output(make_command(["shell", "getprop", "ro.product.model"], device))
-    return str(raw_output, encoding='utf-8')
+    return str(raw_output, encoding='utf-8').strip()
