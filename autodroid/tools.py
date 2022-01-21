@@ -8,6 +8,12 @@ from numpy import ndarray as Image
 from autodroid.size import Size
 
 
+class MatchedRect(Rect):
+    def __init__(self, left, top, right, bottom, confidence) -> None:
+        super().__init__(left, top, right, bottom)
+        self.confidence = confidence
+
+
 def fetch_screen_img(device: Device = None, use_png=True, timeout=None) -> Image:
     raw = cap_screen_pic(device, use_png=use_png, timeout=timeout)
     img = None
@@ -25,7 +31,7 @@ def fetch_screen_img(device: Device = None, use_png=True, timeout=None) -> Image
 
 
 def match(img: Image, templ_img: Image, search_rect: Rect = None, match_one=True,\
-    threshold=0.666, de_dup=True, img_dpi=None, templ_dpi=None) -> Union[Rect, list[Rect]]:
+    threshold=0.666, de_dup=True, img_dpi=None, templ_dpi=None) -> Union[MatchedRect, list[MatchedRect]]:
 
     if search_rect != None:
         img = get_image_region(img, search_rect)
@@ -39,9 +45,9 @@ def match(img: Image, templ_img: Image, search_rect: Rect = None, match_one=True
         coord_scale = img_dpi / templ_dpi
         img = scale_image(img, 1 / coord_scale)
 
-    def coord_restore(rect):
-        result = Rect(rect[0] * coord_scale, rect[1] * coord_scale,\
-                      rect[2] * coord_scale, rect[3] * coord_scale)
+    def coord_restore(rect: list[int], confidence) -> MatchedRect:
+        result = MatchedRect(rect[0] * coord_scale, rect[1] * coord_scale,\
+                             rect[2] * coord_scale, rect[3] * coord_scale, confidence)
         if search_rect != None:
             result.move(search_rect.left, search_rect.top)
         return result
@@ -56,14 +62,14 @@ def match(img: Image, templ_img: Image, search_rect: Rect = None, match_one=True
         if res[y][x] < threshold:
             return None
         result = (x, y, x + templ_img.shape[1], y + templ_img.shape[0])
-        return coord_restore(result)
+        return coord_restore(result, res[y][x])
 
     loc = np.where(res > threshold)
     loc = sorted(zip(loc[0], loc[1]), key=lambda pos: -res[pos[0]][pos[1]])
 
     matches = list()
     for y, x in loc:
-        matches.append((x, y, x + templ_img.shape[1], y + templ_img.shape[0]))
+        matches.append(([x, y, x + templ_img.shape[1], y + templ_img.shape[0]], res[y][x]))
 
     # if de_dup:
     #     no_dup = list()
@@ -77,7 +83,7 @@ def match(img: Image, templ_img: Image, search_rect: Rect = None, match_one=True
     # else:
     #     no_dup = matches
 
-    matches = list(map(lambda item: coord_restore(item), matches))
+    matches = list(map(lambda item: coord_restore(item[0], item[1]), matches))
     de_duped = list()
     for item in matches:
         # has

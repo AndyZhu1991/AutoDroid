@@ -1,4 +1,5 @@
 import math
+from typing import Optional
 
 from autodroid.point import Point
 from autodroid.size import Size
@@ -54,6 +55,13 @@ class Rect:
         h_interset = not (self.right < other.left or other.right < self.left)
         v_interset = not (self.bottom < other.top or other.bottom < self.top)
         return h_interset and v_interset
+
+    def intersect_rect(self, other: 'Rect') -> Optional['Rect']:
+        if not self.is_intersect(other):
+            return None
+        else:
+            return Rect(max(self.left, other.left), max(self.top, other.top),\
+                        min(self.right, other.right), min(self.bottom, other.bottom))
 
     def union(self, other: 'Rect') -> 'Rect':
         return Rect(min(self.left, other.left), min(self.top, other.top), \
