@@ -1,7 +1,7 @@
 from subprocess import check_output, run
 import os
 import shutil
-from typing import Union
+from typing import Union, List
 import re
 from functional import seq
 
@@ -34,7 +34,7 @@ def init_adb():
         raise Exception("No adb command found!")
 
 
-def list_devices() -> list[Device]:
+def list_devices() -> List[Device]:
     raw_output = check_output(make_command(["devices"]))
     raw_output = str(raw_output, encoding='utf-8')
     lines = raw_output.splitlines()
@@ -45,7 +45,7 @@ def list_devices() -> list[Device]:
         .to_list()
 
 
-def make_command(real_cmd: list[str], device: Device = None) -> str:
+def make_command(real_cmd: List[str], device: Device = None) -> str:
     if device == None:
         return [adb_command] + real_cmd
     else:

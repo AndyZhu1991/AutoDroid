@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, List
 import cv2
 import numpy as np
 from autodroid.adb import cap_screen_pic
@@ -31,7 +31,7 @@ def fetch_screen_img(device: Device = None, use_png=True, timeout=None) -> Image
 
 
 def match(img: Image, templ_img: Image, search_rect: Rect = None, match_one=True,\
-    threshold=0.666, de_dup=True, img_dpi=None, templ_dpi=None) -> Union[MatchedRect, list[MatchedRect]]:
+    threshold=0.666, de_dup=True, img_dpi=None, templ_dpi=None) -> Union[MatchedRect, List[MatchedRect]]:
 
     if search_rect != None:
         img = get_image_region(img, search_rect)
@@ -45,7 +45,7 @@ def match(img: Image, templ_img: Image, search_rect: Rect = None, match_one=True
         coord_scale = img_dpi / templ_dpi
         img = scale_image(img, 1 / coord_scale)
 
-    def coord_restore(rect: list[int], confidence) -> MatchedRect:
+    def coord_restore(rect: List[int], confidence) -> MatchedRect:
         result = MatchedRect(rect[0] * coord_scale, rect[1] * coord_scale,\
                              rect[2] * coord_scale, rect[3] * coord_scale, confidence)
         if search_rect != None:
