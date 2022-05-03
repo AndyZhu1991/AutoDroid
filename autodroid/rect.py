@@ -15,6 +15,13 @@ class Rect:
     def __str__(self) -> str:
         return "Rect" + str(self.__dict__)
 
+    def __hash__(self) -> int:
+        return hash((self.left, self.top, self.right, self.bottom))
+
+    def __eq__(self, other: 'Rect') -> bool:
+        return other and self.left == other.left and self.top == other.top and\
+            self.right == other.right and self.bottom == other.bottom
+
     def width(self):
         return self.right - self.left
 
