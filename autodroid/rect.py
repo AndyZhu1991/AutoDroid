@@ -1,5 +1,5 @@
 import math
-from typing import Optional
+from typing import Optional, Tuple, Union
 
 from autodroid.point import Point
 from autodroid.size import Size
@@ -45,11 +45,12 @@ class Rect:
     def center(self) -> Point:
         return Point(self.center_x(), self.center_y())
 
-    def move(self, delta_x, delta_y):
+    def move(self, delta_x, delta_y) -> 'Rect':
         self.left += delta_x
         self.top += delta_y
         self.right += delta_x
         self.bottom += delta_y
+        return self
 
     def contains(self, x, y) -> bool:
         return x >= self.left and x < self.right and y >= self.top and y < self.bottom
@@ -107,10 +108,30 @@ class Rect:
             self.move(0, other.bottom - self.bottom)
 
     @staticmethod
-    def from_center_size(center: Point, size: Size) -> 'Rect':
-        return Rect(center.x - size.width / 2, center.y - size.height / 2, \
-                    center.x + size.width / 2, center.y + size.height / 2)
+    def from_center_size(center: Union[Point, Tuple[float, float]], size: Union[Size, Tuple[float, float]]) -> 'Rect':
+        if isinstance(center, Point):
+            center_x = center.x
+            center_y = center.y
+        else:
+            center_x, center_y = center
+        if isinstance(size, Size):
+            width = size.width
+            height = size.height
+        else:
+            width, height = size
+        return Rect(center_x - width / 2, center_y - height / 2, \
+                    center_x + width / 2, center_y + height / 2)
 
     @staticmethod
-    def from_start_size(start: Point, size: Size) -> 'Rect':
-        return Rect(start.x, start.y, start.x + size.width, start.y + size.height)
+    def from_start_size(start: Union[Point, Tuple[float, float]], size: Union[Size, Tuple[float, float]]) -> 'Rect':
+        if isinstance(start, Point):
+            left = start.x
+            top = start.y
+        else:
+            left, top = start
+        if isinstance(size, Size):
+            width = size.width
+            height = size.height
+        else:
+            width, height = size
+        return Rect(left, top, left + width, top + height)
