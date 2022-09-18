@@ -31,7 +31,8 @@ def fetch_screen_img(device: Device = None, use_png=True, timeout=None) -> Image
 
 
 def match(img: Image, templ_img: Image, search_rect: Rect = None, match_one=True,\
-    threshold=0.666, de_dup=True, img_dpi=None, templ_dpi=None) -> Union[MatchedRect, List[MatchedRect]]:
+          threshold=0.666, de_dup=True, img_dpi=None, templ_dpi=None, mask = None\
+          )-> Union[MatchedRect, List[MatchedRect]]:
 
     if search_rect != None:
         img = get_image_region(img, search_rect)
@@ -52,7 +53,7 @@ def match(img: Image, templ_img: Image, search_rect: Rect = None, match_one=True
             result.move(search_rect.left, search_rect.top)
         return result
 
-    res = cv2.matchTemplate(img, templ_img, cv2.TM_CCOEFF_NORMED)
+    res = cv2.matchTemplate(img, templ_img, cv2.TM_CCOEFF_NORMED, mask=mask)
 
     if match_one:
         max = np.max(res)
