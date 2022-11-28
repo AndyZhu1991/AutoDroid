@@ -1,7 +1,7 @@
 from subprocess import check_output, run
 import os
 import shutil
-from typing import Union, List
+from typing import Optional, Union, List
 import re
 from functional import seq
 
@@ -52,8 +52,12 @@ def make_command(real_cmd: List[str], device: Device = None) -> str:
         return [adb_command] + ["-s", device.id] + real_cmd
 
 
-def run_command(real_cmd: str, device: Device = None):
-    run(make_command(real_cmd, device))
+def run_command(real_cmd: str, device: Device = None, return_output=False) -> Optional[str]:
+    if return_output:
+        raw_output = check_output(make_command(real_cmd, device))
+        return str(raw_output, encoding='utf-8').strip()
+    else:
+        run(make_command(real_cmd, device))
 
 
 def cap_screen_pic(device: Device = None, use_png=True, timeout=None):
@@ -88,7 +92,11 @@ def launch_app(package_name: str, device: Device = None):
     This command simulates the app icon click,
     so the intent implicit intent LAUNCHER is delivered to the specific receiver declared in app manifest
     """
-    run_command(["shell", "monky", "-p", package_name, "-c", "android.intent.category.LAUNCHER", "1"], device)
+    run_command(["shell", "monkey", "-p", package_name, "-c", "android.intent.category.LAUNCHER", "1"], device)
+
+
+def kill_app(package_name: str, device: Device = None):
+    run_command(["shell", "am", "force-stop", package_name], device)
 
 
 def get_screen_size(in_dp=False, device: Device = None) -> Size:
