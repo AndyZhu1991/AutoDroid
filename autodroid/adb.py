@@ -137,3 +137,15 @@ def input_key(key_code: int, device: Device = None):
 def get_device_model(device: Device = None) -> str:
     raw_output = check_output(make_command(["shell", "getprop", "ro.product.model"], device))
     return str(raw_output, encoding='utf-8').strip()
+
+
+def is_screen_on(device: Device = None) -> bool:
+    dump_idle_output = check_output(make_command(["shell", "dumpsys", "deviceidle"], device))
+    if "mScreenOn=true" in str(dump_idle_output, encoding='utf-8'):
+        return True
+
+    dump_power_output = check_output(make_command(["shell", "dumpsys", "power"], device))
+    if "mScreenOn=true" in str(dump_power_output, encoding='utf-8'):
+        return True
+
+    return False
