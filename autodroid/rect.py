@@ -87,11 +87,17 @@ class Rect:
         self.top *= factor
         self.bottom *= factor
 
+    def scaled(self, factor) -> 'Rect':
+        return Rect(self.left * factor, self.top * factor, self.right * factor, self.bottom * factor)
+
     def integerlize(self):
         self.left = round(self.left)
         self.top = round(self.top)
         self.right = round(self.right)
         self.bottom = round(self.bottom)
+
+    def integerlized(self) -> 'Rect':
+        return Rect(round(self.left), round(self.top), round(self.right), round(self.bottom))
 
     def limit_in(self, other: 'Rect'):
         """
