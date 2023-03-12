@@ -52,6 +52,10 @@ class Rect:
         self.bottom += delta_y
         return self
 
+    def moved(self, delta_x, delta_y) -> 'Rect':
+        return Rect(self.left + delta_x, self.top + delta_y,
+                    self.right + delta_x, self.bottom + delta_y)
+
     def contains(self, x, y) -> bool:
         return x >= self.left and x < self.right and y >= self.top and y < self.bottom
 
